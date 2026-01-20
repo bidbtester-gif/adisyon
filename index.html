@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>Dürümcü Adisyon Pro - Gaziantep Edition</title>
+    <title>Antepli Dürümcü - Profesyonel Yönetim</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, addDoc, deleteDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, addDoc, deleteDoc, updateDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyC41Ku7gRwOltqzbbVehvRDgrIxdZhJpvA",
@@ -23,91 +24,104 @@
 
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
-
-        // Fonksiyonları globale taşıyoruz ki HTML içinden erişebilelim
         window.db = db;
-        window.fs = { collection, doc, setDoc, getDoc, onSnapshot, query, addDoc, deleteDoc, orderBy };
+        window.fs = { collection, doc, setDoc, getDoc, onSnapshot, query, addDoc, deleteDoc, updateDoc, orderBy };
     </script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap');
         body { font-family: 'Inter', sans-serif; transition: background 0.3s; }
         
-        /* KARANLIK MOD SİSTEMİ */
         body.dark { background: #0f172a; color: #f1f5f9; }
         .dark .bg-white { background: #1e293b !important; color: #f1f5f9; border-color: #334155; }
-        .dark .bg-slate-50, .dark .bg-slate-100 { background: #334155 !important; color: #f1f5f9; }
-        .dark .text-slate-800, .dark .text-slate-700 { color: #f1f5f9 !important; }
-        .dark .border { border-color: #334155 !important; }
-        .dark input, .dark textarea, .dark select { background: #1e293b !important; color: white !important; border-color: #475569 !important; }
-        .dark .product-btn { background: #1e293b; border-color: #334155; }
+        .dark .bg-slate-50 { background: #334155 !important; color: #f1f5f9; }
+        .dark .text-slate-800 { color: #ffffff !important; }
+        .dark input, .dark textarea { background: #1e293b !important; color: white !important; border: 1px solid #475569; }
 
-        .privacy-hidden { filter: blur(6px); transition: filter 0.3s; }
+        .privacy-hidden { filter: blur(8px); }
+        
         #login-screen { position: fixed; inset: 0; z-index: 10000; display: flex; align-items: center; justify-content: center; background: url('https://images.unsplash.com/photo-1555939594-58d7cb561ad1?q=80&w=1920') no-repeat center center; background-size: cover; }
-        .login-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
-        .product-btn { transition: all 0.2s; cursor: pointer; border: 1px solid #e2e8f0; }
+        .login-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(15px); }
+        
         .tab-content { display: none; }
         .tab-active { display: block; animation: slideUp 0.3s ease-out; }
         @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 9999; align-items: center; justify-content: center; }
-        pre { white-space: pre-wrap; font-family: 'Courier New', monospace; }
+        
+        #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+
+        .report-scroll { max-height: 500px; overflow-y: auto; }
+        .excel-table { width: 100%; border-collapse: collapse; margin-top: 15px; color: black !important; }
+        .excel-table th, .excel-table td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
+        .excel-table th { background-color: #f2f2f2; font-weight: bold; }
+        .pdf-print-area { background: white !important; color: black !important; padding: 40px; }
+
+        #receipt-content { font-family: 'Courier New', Courier, monospace; background: white !important; color: black !important; padding: 15px; width: 100%; max-width: 300px; margin: 0 auto; }
+        .receipt-header { text-align: center; border-bottom: 1px dashed #000; padding-bottom: 10px; margin-bottom: 10px; }
+        .receipt-row { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 3px; }
+        .receipt-divider { border-top: 1px dashed #000; margin: 8px 0; }
+        .receipt-total { font-weight: bold; font-size: 16px; display: flex; justify-content: space-between; }
+
+        @media print {
+            body * { visibility: hidden; }
+            #modal, #modal *, #receipt-content, #receipt-content * { visibility: visible; }
+            #modal { position: absolute; left: 0; top: 0; background: white !important; display: block !important; }
+            #receipt-content { border: none; width: 100%; padding: 0; }
+            .no-print { display: none !important; }
+        }
     </style>
 </head>
-<body class="min-h-screen bg-slate-50">
+<body class="min-h-screen bg-slate-50 dark"> 
 
 <div id="login-screen">
     <div class="login-overlay"></div>
-    <div class="relative z-10 bg-white/90 p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md text-center border border-white/20">
-        <div class="w-24 h-24 bg-orange-600 rounded-3xl mx-auto mb-6 flex items-center justify-center text-white text-4xl shadow-xl rotate-3"><i class="fas fa-fire"></i></div>
-        <h1 class="text-3xl font-black text-slate-800 mb-2 uppercase" data-lang="app_title">Antepli Yusuf Usta</h1>
-        <p class="text-slate-600 mb-8 font-medium" data-lang="login_desc">Sisteme Giriş Yapın</p>
-        <input type="password" id="login-pass" class="w-full p-4 border-2 border-slate-200 rounded-2xl mb-4 focus:border-orange-500 outline-none transition-all text-center text-2xl tracking-widest" placeholder="****">
-        <button onclick="checkLogin()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-2xl shadow-lg transition-all active:scale-95" data-lang="login_btn">SİSTEMİ AÇ</button>
-        <br><br><p class="text-xs text-slate-400 font-bold tracking-widest">CODERK x FIREBASE</p>
+    <div class="relative z-10 bg-white dark:bg-slate-900 p-10 rounded-[3rem] shadow-2xl w-full max-w-md text-center border border-white/10">
+        <img src="anteplilogo.png" alt="Logo" class="w-30 h-auto mx-auto mb-1 drop-shadow-2xl">
+        <h1 class="text-2xl font-black text-slate-800 dark:text-white mb-6 uppercase tracking-tight">Antepli Dürümcü <br> Yusuf Usta </br></h1>
+        <div class="space-y-4">
+            <input type="password" id="login-pass" class="w-full p-4 bg-slate-100 dark:bg-slate-800 border-none rounded-2xl focus:ring-2 focus:ring-orange-500 outline-none text-center text-xl tracking-widest transition-all" placeholder="Şifrenizi Giriniz...">
+            <button onclick="checkLogin()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 rounded-2xl shadow-lg uppercase transition-all active:scale-95">Sisteme Giriş</button>
+            <a href="a1.html" target="_blank">
+                <br><br> <button class="text-sm font-semibold text-orange-500 hover:underline">Şifremi Unuttum</button>
+            </a>
+        </div>
     </div>
 </div>
 
-<div id="app-content" style="display:none;">
-    <header class="bg-white border-b shadow-sm sticky top-0 z-50">
-        <div class="container mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+<div id="app-content" style="display:none;" class="pb-20">
+    <header class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 shadow-sm sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center gap-3">
-                <div class="bg-orange-600 text-white p-2 rounded-xl shadow-md"><i class="fas fa-pepper-hot"></i></div>
-                <h1 class="text-xl font-bold text-slate-800 uppercase tracking-tighter" id="title-display">Antepli Yusuf Usta</h1>
+                <img src="anteplilogo.png" alt="Logo" class="w-10 h-10">
+                <h1 class="text-xl font-bold dark:text-white uppercase" id="title-display">Antepli Dürümcü</h1>
             </div>
             
-            <div class="hidden md:flex items-center gap-6 bg-slate-50 px-6 py-2 rounded-2xl border border-slate-100">
-                <button onclick="togglePrivacy()" class="text-slate-400 hover:text-orange-600" title="Patron Modu"><i id="privacy-icon" class="fas fa-eye"></i></button>
+            <div class="flex items-center gap-4 bg-slate-50 dark:bg-slate-800 px-4 py-2 rounded-2xl border dark:border-slate-700">
+                <button onclick="togglePrivacy()" class="text-slate-400 hover:text-orange-600"><i id="privacy-icon" class="fas fa-eye text-lg"></i></button>
                 <div class="text-center">
-                    <p class="text-[10px] uppercase font-bold text-slate-400" data-lang="stat_income">Bugün Gelir</p>
+                    <p class="text-[9px] uppercase font-bold text-slate-400">Günlük Gelir</p>
                     <p id="stat-income" class="font-black text-emerald-600">0.00 ₺</p>
                 </div>
-                <div class="h-8 w-[1px] bg-slate-200"></div>
                 <div class="text-center">
-                    <p class="text-[10px] uppercase font-bold text-slate-400" data-lang="stat_count">Sipariş</p>
+                    <p class="text-[9px] uppercase font-bold text-slate-400">Sipariş</p>
                     <p id="stat-count" class="font-black text-blue-600">0</p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
-                <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-slate-100 border-none rounded-xl px-3 py-2 text-sm font-bold outline-none cursor-pointer">
-                    <option value="tr">TR 🇹🇷</option>
-                    <option value="en">EN 🇺🇸</option>
-                </select>
-                <button onclick="toggleDarkMode()" class="p-2.5 bg-slate-100 rounded-xl hover:bg-slate-200 text-slate-600"><i class="fas fa-moon"></i></button>
-                <button onclick="location.reload()" class="p-2.5 bg-red-50 rounded-xl hover:bg-red-100 text-red-600"><i class="fas fa-sync-alt"></i></button>
+            <div class="flex gap-2">
+                <button onclick="toggleDarkMode()" class="p-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl dark:text-white"><i class="fas fa-adjust"></i></button>
+                <button onclick="location.reload()" class="p-2.5 bg-red-50 dark:bg-red-900/20 rounded-xl text-red-600"><i class="fas fa-sync-alt"></i></button>
             </div>
         </div>
     </header>
 
-    <nav class="bg-white border-b overflow-x-auto no-scrollbar">
-        <div class="container mx-auto px-4">
-            <ul class="flex gap-2 py-3">
-                <li><button onclick="openTab('adisyon')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-orange-600 bg-orange-50 transition-all" data-lang="nav_pos">ADİSYON</button></li>
-                <li><button onclick="openTab('urun-yonetimi')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all" data-lang="nav_products">ÜRÜNLER</button></li>
-                <li><button onclick="openTab('giderler')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all" data-lang="nav_expenses">GİDERLER</button></li>
-                <li><button onclick="openTab('raporlar')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all" data-lang="nav_reports">RAPORLAR</button></li>
-                <li><button onclick="openTab('firma-ayarlar')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500 hover:bg-slate-50 transition-all" data-lang="nav_settings">AYARLAR</button></li>
-            </ul>
+    <nav class="bg-white dark:bg-slate-900 border-b dark:border-slate-800 overflow-x-auto p-3">
+        <div class="container mx-auto flex gap-2">
+            <button onclick="openTab('adisyon')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-orange-600 bg-orange-50 dark:bg-orange-900/20">SİPARİŞ</button>
+            <button onclick="openTab('online-siparisler')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500">ONLINE SİPARİŞLER</button>
+            <button onclick="openTab('raporlar')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500">ANALİZ & RAPOR</button>
+            <button onclick="openTab('urun-yonetimi')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500">ÜRÜNLER</button>
+            <button onclick="openTab('giderler')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500">GİDERLER</button>
+            <button onclick="openTab('firma-ayarlar')" class="tab-btn px-6 py-2.5 rounded-xl font-bold text-slate-500">AYARLAR</button>
         </div>
     </nav>
 
@@ -118,22 +132,77 @@
                     <div id="products-container" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4"></div>
                 </div>
                 <div class="lg:col-span-4">
-                    <div class="bg-white rounded-[2rem] shadow-xl p-6 border border-slate-100 sticky top-24">
+                    <div class="bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl p-6 border dark:border-slate-800 sticky top-24">
                         <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-xl font-black text-slate-800 uppercase" data-lang="cart_title">Sipariş</h2>
-                            <button onclick="clearCart()" class="text-xs font-bold text-red-500 hover:underline uppercase" data-lang="clear">Temizle</button>
+                            <h2 class="text-xl font-black uppercase">Yeni Adisyon</h2>
+                            <button onclick="clearCart()" class="text-[10px] font-bold text-red-500 underline uppercase">Boşalt</button>
                         </div>
-                        <div id="cart-items" class="space-y-3 mb-6 min-h-[150px] max-h-[40vh] overflow-y-auto pr-2"></div>
-                        <div class="grid grid-cols-2 gap-2 mb-6 p-1 bg-slate-100 rounded-2xl">
-                            <button onclick="setPayment('Nakit')" class="pay-btn active bg-white text-slate-800 font-bold py-2 rounded-xl shadow-sm text-sm" id="pay-cash">NAKİT</button>
-                            <button onclick="setPayment('K.Kartı')" class="pay-btn text-slate-500 font-bold py-2 rounded-xl text-sm" id="pay-card">K.KARTI</button>
+                        <div id="cart-items" class="space-y-3 mb-6 min-h-[100px] max-h-[40vh] overflow-y-auto"></div>
+                        <div class="grid grid-cols-2 gap-2 mb-6 p-1 bg-slate-100 dark:bg-slate-800 rounded-2xl">
+                            <button onclick="setPayment('Nakit')" class="pay-btn active bg-white dark:bg-slate-700 font-bold py-2 rounded-xl shadow-sm text-slate-800 dark:text-white" id="pay-cash">NAKİT</button>
+                            <button onclick="setPayment('K.Kartı')" class="pay-btn text-slate-500 font-bold py-2 rounded-xl" id="pay-card">K.KARTI</button>
                         </div>
-                        <div class="border-t border-dashed pt-6">
-                            <div class="flex justify-between items-center mb-6">
-                                <span class="text-slate-400 font-bold text-sm uppercase" data-lang="total_label">Toplam</span>
-                                <span id="total" class="text-4xl font-black text-orange-600 tracking-tighter">0.00 ₺</span>
+                        <div class="border-t border-dashed dark:border-slate-700 pt-6 text-center">
+                            <span id="total" class="text-4xl font-black text-orange-600 block mb-6">0.00 ₺</span>
+                            <button onclick="saveOrder()" class="w-full bg-orange-600 text-white font-black py-5 rounded-2xl shadow-lg uppercase tracking-widest active:scale-95">Fiş Yazdır</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="online-siparisler" class="tab-content">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 text-center uppercase font-black">
+                <div class="bg-pink-50 dark:bg-pink-900/10 p-6 rounded-[2rem] border border-pink-100 dark:border-pink-900/30">
+                    <p class="text-xs text-pink-600 mb-2">Yemeksepeti</p>
+                    <p id="ys-count" class="text-3xl">0</p>
+                </div>
+                <div class="bg-purple-50 dark:bg-purple-900/10 p-6 rounded-[2rem] border border-purple-100 dark:border-purple-900/30">
+                    <p class="text-xs text-purple-600 mb-2">Getir Yemek</p>
+                    <p id="getir-count" class="text-3xl">0</p>
+                </div>
+                <div class="bg-orange-50 dark:bg-orange-900/10 p-6 rounded-[2rem] border border-orange-100 dark:border-orange-900/30">
+                    <p class="text-xs text-orange-600 mb-2">Migros Yemek</p>
+                    <p id="migros-count" class="text-3xl">0</p>
+                </div>
+            </div>
+            <div class="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800">
+                <h2 class="text-2xl font-black mb-8 flex items-center gap-3">
+                    <span class="flex h-3 w-3"><span class="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-green-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span></span>
+                    GELEN SİPARİŞLER
+                </h2>
+                <div id="online-orders-list" class="space-y-4">
+                    <p class="text-slate-400 italic text-center py-20 uppercase tracking-widest text-sm">Online Platform Alanı Güncellenmektedir...</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="raporlar" class="tab-content">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                <div class="lg:col-span-4 space-y-6">
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border dark:border-slate-800 shadow-sm">
+                        <h3 class="font-black mb-4 uppercase">Rapor Sorgula</h3>
+                        <label class="text-[10px] font-bold text-slate-400">GÜN SEÇ</label>
+                        <input type="date" id="gunluk-tarih" class="w-full p-4 rounded-xl border dark:border-slate-700 mb-4 outline-none">
+                        <button onclick="generateDetayliRapor('gunluk')" class="w-full bg-orange-600 text-white py-4 rounded-xl font-bold uppercase mb-4 shadow-md">Günü Getir</button>
+                        <label class="text-[10px] font-bold text-slate-400">AY SEÇ</label>
+                        <input type="month" id="aylik-ay" class="w-full p-4 rounded-xl border dark:border-slate-700 mb-4 outline-none">
+                        <button onclick="generateDetayliRapor('aylik')" class="w-full bg-slate-800 dark:bg-slate-700 text-white py-4 rounded-xl font-bold uppercase shadow-md">Ayı Analiz Et</button>
+                    </div>
+                    <button onclick="downloadPDF()" id="pdf-btn" style="display:none;" class="w-full bg-emerald-600 text-white py-5 rounded-2xl font-black shadow-lg"><i class="fas fa-file-pdf mr-2"></i>SADE A4 PDF İNDİR</button>
+                </div>
+
+                <div class="lg:col-span-8 space-y-6">
+                    <div class="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border dark:border-slate-800 shadow-sm h-[350px]">
+                        <h3 class="font-black mb-4 uppercase">Gelir vs Gider (Son 7 Gün)</h3>
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                    <div class="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800 shadow-sm">
+                        <div id="report-to-pdf">
+                            <h3 class="font-black mb-4 uppercase text-orange-600" id="report-title">Detaylı Rapor</h3>
+                            <div id="report-output" class="report-scroll">
+                                <p class="text-slate-400 italic">Sorgulama yapıldığında detaylar burada listelenir...</p>
                             </div>
-                            <button onclick="saveOrder()" id="save-btn" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-5 rounded-2xl shadow-lg transition-all active:scale-95 uppercase tracking-widest text-lg" data-lang="save_btn">Kaydet & Yazdır</button>
                         </div>
                     </div>
                 </div>
@@ -141,67 +210,51 @@
         </div>
 
         <div id="urun-yonetimi" class="tab-content">
-            <div class="max-w-4xl mx-auto bg-white p-8 rounded-[2rem] shadow-md border border-slate-100">
-                <h2 class="text-2xl font-black mb-8 text-slate-800">Ürün Listesini Düzenle</h2>
-                <div class="flex flex-wrap gap-4 mb-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
-                    <input id="product-name" placeholder="Ürün Adı" class="flex-1 p-4 rounded-xl border-none ring-1 ring-slate-200 outline-none">
-                    <input id="product-price" type="number" step="0.01" placeholder="Fiyat" class="w-32 p-4 rounded-xl border-none ring-1 ring-slate-200 outline-none">
-                    <button onclick="dbAddProduct()" class="bg-orange-600 text-white px-8 py-4 rounded-xl font-black hover:bg-orange-700">EKLE</button>
+            <div class="max-w-4xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800">
+                <h2 class="text-2xl font-black mb-6">Menü Düzenle</h2>
+                <div class="flex flex-wrap gap-4 mb-8 bg-slate-50 dark:bg-slate-800 p-6 rounded-2xl border dark:border-slate-700">
+                    <input id="product-name" placeholder="Ürün Adı" class="flex-1 p-4 rounded-xl outline-none">
+                    <input id="product-price" type="number" placeholder="Fiyat" class="w-32 p-4 rounded-xl outline-none">
+                    <button onclick="dbAddProduct()" class="bg-orange-600 text-white px-8 py-4 rounded-xl font-black shadow-md">EKLE</button>
                 </div>
-                <div id="product-list" class="grid gap-3"></div>
+                <div id="product-list" class="grid gap-2"></div>
             </div>
         </div>
 
         <div id="giderler" class="tab-content">
-            <div class="max-w-4xl mx-auto bg-white p-8 rounded-[2rem] shadow-md border border-slate-100">
-                <h2 class="text-2xl font-black mb-8 text-slate-800">Gider Kayıtları</h2>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-red-50 p-6 rounded-2xl border border-red-100">
-                    <input id="gider-aciklama" placeholder="Gider Açıklaması" class="md:col-span-2 p-4 rounded-xl border-none outline-none ring-1 ring-red-200">
-                    <input id="gider-tutar" type="number" step="0.01" placeholder="Tutar" class="p-4 rounded-xl border-none outline-none ring-1 ring-red-200">
-                    <button onclick="dbAddGider()" class="bg-red-600 text-white py-4 rounded-xl font-black hover:bg-red-700">İŞLE</button>
+            <div class="max-w-4xl mx-auto bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border dark:border-slate-800">
+                <h2 class="text-2xl font-black mb-6 text-red-600 uppercase">Gider Kayıtları</h2>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 bg-red-50 dark:bg-red-900/10 p-6 rounded-2xl border border-red-100 dark:border-red-900/30">
+                    <input id="gider-aciklama" placeholder="Gider Açıklaması" class="md:col-span-2 p-4 rounded-xl border dark:border-slate-700">
+                    <input id="gider-tutar" type="number" placeholder="Tutar" class="p-4 rounded-xl border dark:border-slate-700">
+                    <button onclick="dbAddGider()" class="bg-red-600 text-white py-4 rounded-xl font-black shadow-md">İŞLE</button>
                 </div>
                 <div id="gider-list" class="space-y-2"></div>
             </div>
         </div>
 
-        <div id="raporlar" class="tab-content">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6"><i class="fas fa-calendar-day text-orange-500 mr-2"></i> Günlük Rapor</h3>
-                    <input type="date" id="gunluk-tarih" class="w-full p-4 rounded-xl border mb-4">
-                    <button onclick="generateGunlukRapor()" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold uppercase">Sorgula</button>
-                    <pre id="gunluk-rapor-content" class="bg-slate-50 p-6 rounded-2xl mt-4 text-sm"></pre>
-                </div>
-                <div class="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-100">
-                    <h3 class="text-xl font-black mb-6"><i class="fas fa-calendar-alt text-blue-500 mr-2"></i> Aylık Analiz</h3>
-                    <input type="month" id="aylik-ay" class="w-full p-4 rounded-xl border mb-4">
-                    <button onclick="generateAylikRapor()" class="w-full bg-slate-800 text-white py-4 rounded-xl font-bold uppercase">Analiz Et</button>
-                    <pre id="aylik-rapor-content" class="bg-slate-50 p-6 rounded-2xl mt-4 text-sm"></pre>
-                </div>
-            </div>
-        </div>
-
         <div id="firma-ayarlar" class="tab-content">
-            <div class="max-w-2xl mx-auto bg-white p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
-                <h2 class="text-2xl font-black mb-8 text-slate-800">Firma Bilgileri</h2>
-                <div class="space-y-6">
-                    <input id="firma-ismi" placeholder="İşletme Adı" class="w-full p-4 rounded-2xl bg-slate-50 border">
-                    <div class="grid grid-cols-2 gap-4">
-                        <input id="firma-telefon" placeholder="Telefon" class="p-4 rounded-2xl bg-slate-50 border">
-                        <input id="firma-email" placeholder="E-Mail" class="p-4 rounded-2xl bg-slate-50 border">
-                    </div>
-                    <textarea id="firma-adres" placeholder="Adres" rows="3" class="w-full p-4 rounded-2xl bg-slate-50 border"></textarea>
-                    <button onclick="dbUpdateFirma()" class="w-full bg-slate-800 text-white py-5 rounded-2xl font-black shadow-lg">GÜNCELLE</button>
+            <div class="max-w-2xl mx-auto bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border dark:border-slate-800">
+                <h2 class="text-2xl font-black mb-8">İşletme Bilgileri</h2>
+                <div class="space-y-4">
+                    <input id="firma-ismi" placeholder="İşletme Adı" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700">
+                    <input id="firma-telefon" placeholder="Telefon" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700">
+                    <textarea id="firma-adres" placeholder="Adres Bilgisi" rows="3" class="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border dark:border-slate-700"></textarea>
+                    <button onclick="dbUpdateFirma()" class="w-full bg-slate-800 dark:bg-orange-600 text-white py-5 rounded-2xl font-black shadow-lg">BİLGİLERİ GÜNCELLE</button>
                 </div>
             </div>
         </div>
     </main>
+
+    <footer class="text-center py-10 text-slate-400 font-black tracking-widest uppercase">
+        CODERK Software
+    </footer>
 </div>
 
 <div id="modal">
-    <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm shadow-2xl m-4 border-t-[10px] border-orange-600">
-        <pre id="receipt-content" class="bg-slate-50 p-6 rounded-2xl mb-6 text-sm font-mono border border-dashed border-slate-300"></pre>
-        <div class="grid grid-cols-2 gap-4">
+    <div class="bg-white p-8 rounded-[2rem] w-full max-w-sm m-4 shadow-2xl">
+        <div id="receipt-content"></div>
+        <div class="grid grid-cols-2 gap-4 no-print mt-6">
             <button onclick="window.print()" class="bg-orange-600 text-white py-4 rounded-xl font-black shadow-lg">YAZDIR</button>
             <button onclick="closeModal()" class="bg-slate-100 text-slate-600 py-4 rounded-xl font-black">KAPAT</button>
         </div>
@@ -209,231 +262,278 @@
 </div>
 
 <script>
-    const i18n = {
-        tr: { app_title: "Antepli Yusuf Usta", login_desc: "Adisyon Sistemine Giriş Yapın", login_btn: "SİSTEMİ AÇ", stat_income: "Bugün Gelir", stat_count: "Sipariş", nav_pos: "ADİSYON", nav_products: "ÜRÜNLER", nav_expenses: "GİDERLER", nav_reports: "RAPORLAR", nav_settings: "AYARLAR", cart_title: "Sipariş", clear: "Temizle", total_label: "Toplam", save_btn: "KAYDET & YAZDIR" },
-        en: { app_title: "Antep Grill Master", login_desc: "Login to POS System", login_btn: "OPEN SYSTEM", stat_income: "Today Revenue", stat_count: "Orders", nav_pos: "POS", nav_products: "PRODUCTS", nav_expenses: "EXPENSES", nav_reports: "REPORTS", nav_settings: "SETTINGS", cart_title: "Cart", clear: "Clear", total_label: "Total", save_btn: "SAVE & PRINT" }
-    };
-
-    let products = [];
-    let orders = [];
-    let giderler = [];
-    let firma = { ismi: "Antepli Yusuf Usta", adres: "", telefon: "", email: "" };
-    let cart = {};
-    let currentPayment = 'Nakit';
-    let isPrivacyOn = false;
+    let products = []; let orders = []; let giderler = []; let onlineOrders = [];
+    let firma = { ismi: "Antepli Dürümcü", adres: "", telefon: "" };
+    let cart = {}; let currentPayment = 'Nakit'; let isPrivacyOn = false;
+    let balanceChart = null;
 
     function checkLogin() {
         if(document.getElementById('login-pass').value === "1234") {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('app-content').style.display = 'block';
             startFirebaseSync();
-        } else { alert("Şifre Yanlış!"); }
+        } else { alert("Hatalı Şifre!"); }
     }
 
-    // CLOUD SYNC LOGIC
-    function startFirebaseSync() {
-        // 1. Ürünleri Çek
-        window.fs.onSnapshot(window.fs.collection(window.db, "products"), (snap) => {
-            products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderProducts();
-            renderProductList();
-        });
-
-        // 2. Siparişleri Çek
-        window.fs.onSnapshot(window.fs.collection(window.db, "orders"), (snap) => {
-            orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            updateStats();
-        });
-
-        // 3. Giderleri Çek
-        window.fs.onSnapshot(window.fs.collection(window.db, "expenses"), (snap) => {
-            giderler = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderGiderList();
-        });
-
-        // 4. Firma Bilgilerini Çek
-        window.fs.onSnapshot(window.fs.doc(window.db, "settings", "firma"), (doc) => {
-            if(doc.exists()) {
-                firma = doc.data();
-                document.getElementById('title-display').innerText = firma.ismi;
-            }
-        });
-    }
-
-    function renderProducts() {
-        const container = document.getElementById('products-container');
-        container.innerHTML = products.map(p => `
-            <div onclick="addToCart('${p.id}')" class="product-btn bg-white p-6 rounded-[2rem] text-center shadow-sm hover:shadow-xl hover:border-orange-500">
-                <div class="font-black text-slate-800 mb-1 truncate uppercase text-sm">${p.name}</div>
-                <div class="text-orange-600 font-black text-xl tracking-tighter">${parseFloat(p.price).toFixed(2)} ₺</div>
-            </div>
-        `).join('');
-    }
-
-    function addToCart(id) {
-        const p = products.find(x => x.id === id);
-        if(!cart[id]) cart[id] = {...p, quantity: 0};
-        cart[id].quantity++;
-        renderCart();
-    }
-
-    function renderCart() {
-        const container = document.getElementById('cart-items');
-        let total = 0;
-        const items = Object.values(cart).filter(i => i.quantity > 0);
-        container.innerHTML = items.map(item => {
-            total += item.price * item.quantity;
-            return `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                <div class="font-black text-slate-800 text-sm uppercase">${item.name} (${item.quantity}x)</div>
-                <div class="font-black text-orange-600 text-sm">${(item.price * item.quantity).toFixed(2)} ₺</div>
-            </div>`;
-        }).join('') || `<div class="text-center py-10 text-slate-300 italic">Boş...</div>`;
-        document.getElementById('total').innerText = total.toFixed(2) + " ₺";
-    }
-
-    async function saveOrder() {
-        const items = Object.values(cart).filter(i => i.quantity > 0);
-        if(!items.length) return;
-        const total = parseFloat(document.getElementById('total').innerText);
-        const orderData = {
-            date: new Date().toISOString(),
-            total: total,
-            payment: currentPayment,
-            items: items
-        };
-        await window.fs.addDoc(window.fs.collection(window.db, "orders"), orderData);
-        showReceipt(orderData);
-        clearCart();
-    }
-
-    // DB ACTIONS
-    async function dbAddProduct() {
-        const name = document.getElementById('product-name').value;
-        const price = parseFloat(document.getElementById('product-price').value);
-        if(name && price) {
-            await window.fs.addDoc(window.fs.collection(window.db, "products"), { name, price });
-            document.getElementById('product-name').value = '';
-            document.getElementById('product-price').value = '';
-        }
-    }
-
-    async function dbDeleteProduct(id) {
-        if(confirm("Ürünü silmek istediğine emin misin?")) {
-            await window.fs.deleteDoc(window.fs.doc(window.db, "products", id));
-        }
-    }
-
-    async function dbAddGider() {
-        const aciklama = document.getElementById('gider-aciklama').value;
-        const tutar = parseFloat(document.getElementById('gider-tutar').value);
-        if(aciklama && tutar) {
-            await window.fs.addDoc(window.fs.collection(window.db, "expenses"), { 
-                aciklama, 
-                tutar, 
-                tarih: new Date().toISOString().split('T')[0] 
-            });
-            document.getElementById('gider-aciklama').value = '';
-            document.getElementById('gider-tutar').value = '';
-        }
-    }
-
-    async function dbUpdateFirma() {
-        const data = {
-            ismi: document.getElementById('firma-ismi').value,
-            telefon: document.getElementById('firma-telefon').value,
-            email: document.getElementById('firma-email').value,
-            adres: document.getElementById('firma-adres').value
-        };
-        await window.fs.setDoc(window.fs.doc(window.db, "settings", "firma"), data);
-        alert("Firma güncellendi!");
-    }
-
-    // UI HELPERS
-    function renderProductList() {
-        document.getElementById('product-list').innerHTML = products.map(p => `
-            <div class="flex justify-between items-center p-4 bg-slate-50 rounded-xl border">
-                <span class="font-bold">${p.name}</span>
-                <div class="flex items-center gap-4">
-                    <span class="font-black">${parseFloat(p.price).toFixed(2)} ₺</span>
-                    <button onclick="dbDeleteProduct('${p.id}')" class="text-red-500"><i class="fas fa-trash"></i></button>
-                </div>
-            </div>
-        `).join('');
-    }
-
-    function renderGiderList() {
-        document.getElementById('gider-list').innerHTML = giderler.map(g => `
-            <div class="flex justify-between items-center p-4 bg-white rounded-xl border">
-                <span><b class="uppercase">${g.aciklama}</b> <small class="block text-slate-400">${g.tarih}</small></span>
-                <span class="text-red-600 font-black">${parseFloat(g.tutar).toFixed(2)} ₺</span>
-            </div>
-        `).join('');
-    }
-
-    function updateStats() {
-        const today = new Date().toISOString().split('T')[0];
-        const todayOrders = orders.filter(o => o.date.startsWith(today));
-        const income = todayOrders.reduce((s, o) => s + o.total, 0);
-        document.getElementById('stat-income').innerText = income.toFixed(2) + " ₺";
-        document.getElementById('stat-count').innerText = todayOrders.length;
-    }
-
-    function showReceipt(order) {
-        let content = `${firma.ismi.toUpperCase()}\n--------------------------\n`;
-        order.items.forEach(i => content += `${i.name.substring(0,12)} x${i.quantity} ${(i.price*i.quantity).toFixed(2)}₺\n`);
-        content += `--------------------------\nTOPLAM: ${order.total.toFixed(2)}₺\nÖDEME: ${order.payment}`;
-        document.getElementById('receipt-content').textContent = content;
-        document.getElementById('modal').style.display = 'flex';
-    }
-
-    function generateGunlukRapor() {
-        const tarih = document.getElementById('gunluk-tarih').value;
-        if(!tarih) return;
-        const daily = orders.filter(o => o.date.startsWith(tarih));
-        const income = daily.reduce((s, o) => s + o.total, 0);
-        const cash = daily.filter(o => o.payment === 'Nakit').reduce((s, o) => s + o.total, 0);
-        const card = daily.filter(o => o.payment === 'K.Kartı').reduce((s, o) => s + o.total, 0);
-        document.getElementById('gunluk-rapor-content').textContent = `TARİH: ${tarih}\nSipariş Adeti: ${daily.length}\nNakit: ${cash.toFixed(2)} ₺\nK.Kartı: ${card.toFixed(2)} ₺\n--------------------\nTOPLAM: ${income.toFixed(2)} ₺`;
-    }
-
-    function generateAylikRapor() {
-        const ay = document.getElementById('aylik-ay').value;
-        if(!ay) return;
-        const monthly = orders.filter(o => o.date.startsWith(ay));
-        const income = monthly.reduce((s, o) => s + o.total, 0);
-        document.getElementById('aylik-rapor-content').textContent = `${ay} DÖNEMİ\nToplam Ciro: ${income.toFixed(2)} ₺\nSipariş Sayısı: ${monthly.length}`;
-    }
-
-    // GENERAL UI ACTIONS
-    function toggleDarkMode() { document.body.classList.toggle('dark'); }
     function togglePrivacy() {
         isPrivacyOn = !isPrivacyOn;
         document.getElementById('privacy-icon').className = isPrivacyOn ? 'fas fa-eye-slash' : 'fas fa-eye';
         document.getElementById('stat-income').classList.toggle('privacy-hidden', isPrivacyOn);
     }
+
+    function startFirebaseSync() {
+        window.fs.onSnapshot(window.fs.collection(window.db, "products"), (snap) => {
+            products = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderProducts(); renderProductList();
+        });
+        window.fs.onSnapshot(window.fs.collection(window.db, "orders"), (snap) => {
+            orders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateStats(); updateChart();
+        });
+        window.fs.onSnapshot(window.fs.collection(window.db, "expenses"), (snap) => {
+            giderler = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            updateChart(); renderGiderList();
+        });
+        // ONLINE SİPARİŞLERİ TAKİP ET
+        window.fs.onSnapshot(window.fs.collection(window.db, "online_orders"), (snap) => {
+            onlineOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderOnlineOrders();
+        });
+        window.fs.onSnapshot(window.fs.doc(window.db, "settings", "firma"), (doc) => {
+            if(doc.exists()) { 
+                firma = doc.data(); 
+                document.getElementById('title-display').innerText = firma.ismi;
+                document.getElementById('firma-ismi').value = firma.ismi;
+                document.getElementById('firma-telefon').value = firma.telefon;
+                document.getElementById('firma-adres').value = firma.adres;
+            }
+        });
+    }
+
+    // ONLINE SİPARİŞ RENDER
+    function renderOnlineOrders() {
+        const container = document.getElementById('online-orders-list');
+        document.getElementById('ys-count').innerText = onlineOrders.filter(o => o.platform === 'Yemeksepeti').length;
+        document.getElementById('getir-count').innerText = onlineOrders.filter(o => o.platform === 'Getir').length;
+        document.getElementById('migros-count').innerText = onlineOrders.filter(o => o.platform === 'Migros').length;
+
+        if(onlineOrders.length === 0) {
+            container.innerHTML = `<p class="text-slate-400 italic text-center py-20 uppercase tracking-widest text-sm">Online Sipariş Platformu Güncellenmektedir...</p>`;
+            return;
+        }
+
+        container.innerHTML = onlineOrders.map(o => `
+            <div class="flex flex-col md:flex-row justify-between items-center p-6 bg-slate-50 dark:bg-slate-800 rounded-[2rem] border dark:border-slate-700 gap-4">
+                <div class="flex items-center gap-4">
+                    <div class="w-12 h-12 bg-white dark:bg-slate-700 flex items-center justify-center rounded-2xl font-black text-xl shadow-sm text-orange-600">${o.platform[0]}</div>
+                    <div>
+                        <div class="font-black text-sm uppercase">${o.customer || 'İsimsiz Müşteri'}</div>
+                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${o.platform} • ${o.time || 'Şimdi'}</div>
+                    </div>
+                </div>
+                <div class="text-center md:text-right">
+                    <div class="font-black text-emerald-600 text-lg">${parseFloat(o.total).toFixed(2)} ₺</div>
+                    <div class="text-[9px] text-slate-500 font-bold">${o.items_summary || 'Menü Detayı'}</div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="approveOnlineOrder('${o.id}')" class="bg-orange-600 text-white px-6 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg active:scale-95">ONAYLA</button>
+                    <button onclick="deleteOnlineOrder('${o.id}')" class="text-red-500 p-3"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    async function approveOnlineOrder(id) {
+        alert('Sipariş Onaylandı ve Arşive Alındı!');
+        await window.fs.deleteDoc(window.fs.doc(window.db, "online_orders", id));
+    }
+
+    async function deleteOnlineOrder(id) {
+        if(confirm('Siparişi silmek istiyor musunuz?')) await window.fs.deleteDoc(window.fs.doc(window.db, "online_orders", id));
+    }
+
+    function updateChart() {
+        const ctx = document.getElementById('balanceChart').getContext('2d');
+        const last7Days = [...Array(7)].map((_, i) => {
+            const d = new Date(); d.setDate(d.getDate() - i);
+            return d.toISOString().split('T')[0];
+        }).reverse();
+        const salesData = last7Days.map(date => orders.filter(o => o.date.startsWith(date)).reduce((s, o) => s + o.total, 0));
+        const expenseData = last7Days.map(date => giderler.filter(g => g.tarih === date).reduce((s, g) => s + g.tutar, 0));
+        if(balanceChart) balanceChart.destroy();
+        balanceChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: last7Days.map(d => d.split('-').reverse().slice(0,2).join('/')),
+                datasets: [
+                    { label: 'Gelir (₺)', data: salesData, backgroundColor: '#10b981', borderRadius: 5 },
+                    { label: 'Gider (₺)', data: expenseData, backgroundColor: '#ef4444', borderRadius: 5 }
+                ]
+            },
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
+        });
+    }
+
+    function generateDetayliRapor(tip) {
+        const selector = tip === 'gunluk' ? 'gunluk-tarih' : 'aylik-ay';
+        const val = document.getElementById(selector).value;
+        if(!val) { alert("Lütfen tarih seçin!"); return; }
+        const filteredOrders = orders.filter(o => o.date.startsWith(val));
+        const filteredExpenses = giderler.filter(g => g.tarih.startsWith(val));
+        
+        let html = `<div class="pdf-print-area">
+            <h2 style="text-align:center; text-transform:uppercase; margin-bottom:5px;">${firma.ismi} RAPORU</h2>
+            <p style="text-align:center; font-size:12px; margin-bottom:20px;">Dönem: ${val}</p>
+            <div style="margin-bottom:20px; font-size:14px;">
+                <p><b>Toplam Gelir:</b> ${filteredOrders.reduce((s,o)=>s+o.total,0).toFixed(2)} ₺</p>
+                <p><b>Toplam Gider:</b> ${filteredExpenses.reduce((s,g)=>s+g.tutar,0).toFixed(2)} ₺</p>
+                <p><b>Net Kar/Zarar:</b> ${(filteredOrders.reduce((s,o)=>s+o.total,0) - filteredExpenses.reduce((s,g)=>s+g.tutar,0)).toFixed(2)} ₺</p>
+            </div>
+            <table class="excel-table">
+                <thead><tr><th>No</th><th>Saat</th><th>Ürünler</th><th>Ödeme</th><th>Tutar</th></tr></thead>
+                <tbody>`;
+        filteredOrders.forEach((o, i) => {
+            const time = o.date.split('T')[1].substring(0,5);
+            const items = o.items.map(it => `${it.name}(${it.quantity})`).join(', ');
+            html += `<tr><td>${i+1}</td><td>${time}</td><td>${items}</td><td>${o.payment}</td><td>${o.total.toFixed(2)} ₺</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        if(filteredExpenses.length > 0){
+            html += `<h4 style="margin-top:30px; margin-bottom:10px; border-bottom:1px solid #000;">GİDER DETAYLARI</h4>
+            <table class="excel-table"><thead><tr><th>Açıklama</th><th>Tutar</th></tr></thead><tbody>`;
+            filteredExpenses.forEach(g => { html += `<tr><td>${g.aciklama}</td><td>${g.tutar.toFixed(2)} ₺</td></tr>`; });
+            html += `</tbody></table>`;
+        }
+        html += `<p style="margin-top:40px; text-align:right; font-size:10px;">CODERK Software Raporlama Sistemi</p></div>`;
+        document.getElementById('report-output').innerHTML = html;
+        document.getElementById('report-title').innerText = tip === 'gunluk' ? 'GÜNLÜK ÖZET' : 'AYLIK ANALİZ';
+        document.getElementById('pdf-btn').style.display = 'block';
+    }
+
+    function downloadPDF() {
+        const element = document.querySelector('.pdf-print-area');
+        const opt = { margin: 0, filename: 'Antepli_Rapor.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' } };
+        html2pdf().set(opt).from(element).save();
+    }
+
+    function showReceipt(order) {
+        let itemsHtml = order.items.map(i => `
+            <div class="receipt-row">
+                <span>${i.quantity} x ${i.name.toUpperCase()}</span>
+                <span>${(i.price * i.quantity).toFixed(2)}₺</span>
+            </div>
+        `).join('');
+        let content = `
+            <div class="receipt-header">
+                <h2 style="font-weight:900; font-size:18px; margin:0;">${firma.ismi.toUpperCase()}</h2>
+                <p style="font-size:11px; margin:5px 0;">${firma.adres || ''}<br>Tel: ${firma.telefon || ''}</p>
+                <p style="font-size:11px; margin:0;">Tarih: ${new Date().toLocaleString('tr-TR')}</p>
+            </div>
+            <div class="receipt-body">${itemsHtml}</div>
+            <div class="receipt-divider"></div>
+            <div class="receipt-total"><span>TOPLAM</span><span>${order.total.toFixed(2)}₺</span></div>
+            <div class="receipt-row" style="margin-top:5px;"><span>ÖDEME</span><span style="font-weight:bold;">${order.payment.toUpperCase()}</span></div>
+            <div class="receipt-divider"></div>
+            <div style="text-align:center; font-size:12px; font-weight:bold;">AFİYET OLSUN<br><span style="font-size:9px; font-weight:normal;">Yine Bekleriz</span></div>
+        `;
+        document.getElementById('receipt-content').innerHTML = content;
+        document.getElementById('modal').style.display = 'flex';
+    }
+
+    async function dbAddProduct() {
+        const name = document.getElementById('product-name').value;
+        const price = parseFloat(document.getElementById('product-price').value);
+        if(name && price) { await window.fs.addDoc(window.fs.collection(window.db, "products"), { name, price }); document.getElementById('product-name').value = ''; document.getElementById('product-price').value = ''; }
+    }
+    async function dbDeleteProduct(id) { if(confirm('Silmek istediğinize emin misiniz?')) await window.fs.deleteDoc(window.fs.doc(window.db, "products", id)); }
+    async function dbEditProduct(id, n, p) {
+        const nn = prompt("Yeni isim:", n); const np = prompt("Yeni fiyat:", p);
+        if(nn && np) await window.fs.updateDoc(window.fs.doc(window.db, "products", id), { name: nn, price: parseFloat(np) });
+    }
+    async function dbAddGider() {
+        const aciklama = document.getElementById('gider-aciklama').value;
+        const tutar = parseFloat(document.getElementById('gider-tutar').value);
+        if(aciklama && tutar) { await window.fs.addDoc(window.fs.collection(window.db, "expenses"), { aciklama, tutar, tarih: new Date().toISOString().split('T')[0] }); document.getElementById('gider-aciklama').value = ''; document.getElementById('gider-tutar').value = ''; }
+    }
+    async function dbDeleteGider(id) { if(confirm('Gideri sil?')) await window.fs.deleteDoc(window.fs.doc(window.db, "expenses", id)); }
+    async function dbEditGider(id, a, t) {
+        const na = prompt("Yeni açıklama:", a); const nt = prompt("Yeni tutar:", t);
+        if(na && nt) await window.fs.updateDoc(window.fs.doc(window.db, "expenses", id), { aciklama: na, tutar: parseFloat(nt) });
+    }
+    async function dbUpdateFirma() {
+        const data = { ismi: document.getElementById('firma-ismi').value, telefon: document.getElementById('firma-telefon').value, adres: document.getElementById('firma-adres').value };
+        await window.fs.setDoc(window.fs.doc(window.db, "settings", "firma"), data); alert("Güncellendi!");
+    }
+
+    function renderProducts() {
+        document.getElementById('products-container').innerHTML = products.map(p => `
+            <div onclick="addToCart('${p.id}')" class="bg-white dark:bg-slate-800 p-6 rounded-[2rem] text-center shadow-sm border dark:border-slate-700 hover:border-orange-500 cursor-pointer active:scale-95 transition-all">
+                <div class="font-black text-slate-800 dark:text-white mb-1 uppercase text-xs">${p.name}</div>
+                <div class="text-orange-600 font-black text-xl">${parseFloat(p.price).toFixed(2)} ₺</div>
+            </div>`).join('');
+    }
+    function renderProductList() {
+        document.getElementById('product-list').innerHTML = products.map(p => `
+            <div class="flex justify-between items-center p-4 bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-700 mb-2">
+                <span class="font-bold uppercase text-xs">${p.name} - ${p.price} ₺</span>
+                <div class="flex gap-2">
+                    <button onclick="dbEditProduct('${p.id}','${p.name}',${p.price})" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
+                    <button onclick="dbDeleteProduct('${p.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`).join('');
+    }
+    function renderGiderList() {
+        document.getElementById('gider-list').innerHTML = giderler.map(g => `
+            <div class="flex justify-between items-center p-4 bg-white dark:bg-slate-800 rounded-xl border dark:border-slate-700 mb-2">
+                <span class="font-bold uppercase text-xs">${g.aciklama} - ${g.tutar} ₺</span>
+                <div class="flex gap-2">
+                    <button onclick="dbEditGider('${g.id}','${g.aciklama}',${g.tutar})" class="text-blue-500 p-2"><i class="fas fa-edit"></i></button>
+                    <button onclick="dbDeleteGider('${g.id}')" class="text-red-500 p-2"><i class="fas fa-trash"></i></button>
+                </div>
+            </div>`).join('');
+    }
+
+    function addToCart(id) { if(!cart[id]) cart[id] = {...products.find(x => x.id === id), quantity: 0}; cart[id].quantity++; renderCart(); }
+    function removeFromCart(id) { if(cart[id]) { cart[id].quantity--; if(cart[id].quantity <= 0) delete cart[id]; renderCart(); } }
+    function renderCart() {
+        let t = 0; const items = Object.values(cart).filter(i => i.quantity > 0);
+        document.getElementById('cart-items').innerHTML = items.map(i => {
+            t += i.price * i.quantity;
+            return `<div class="flex justify-between items-center bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl border dark:border-slate-700">
+                <div class="flex-1"><div class="font-bold text-xs uppercase">${i.name}</div><div class="text-[10px] font-black text-orange-600">${i.quantity} x ${i.price} ₺</div></div>
+                <button onclick="removeFromCart('${i.id}')" class="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg"><i class="fas fa-times"></i></button>
+            </div>`;
+        }).join('') || `<div class="text-center py-10 text-slate-300 italic text-sm">Sepet boş...</div>`;
+        document.getElementById('total').innerText = t.toFixed(2) + " ₺";
+    }
+    function updateStats() {
+        const day = new Date().toISOString().split('T')[0];
+        const tOrders = orders.filter(o => o.date.startsWith(day));
+        document.getElementById('stat-income').innerText = tOrders.reduce((s, o) => s + o.total, 0).toFixed(2) + " ₺";
+        document.getElementById('stat-count').innerText = tOrders.length;
+    }
+    async function saveOrder() {
+        const items = Object.values(cart).filter(i => i.quantity > 0); if(!items.length) return;
+        const oData = { date: new Date().toISOString(), total: parseFloat(document.getElementById('total').innerText), payment: currentPayment, items: items };
+        await window.fs.addDoc(window.fs.collection(window.db, "orders"), oData); showReceipt(oData); clearCart();
+    }
+    function toggleDarkMode() { document.body.classList.toggle('dark'); }
     function setPayment(type) {
         currentPayment = type;
-        document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('bg-white', 'text-slate-800', 'shadow-sm', 'active'));
-        const btn = type === 'Nakit' ? document.getElementById('pay-cash') : document.getElementById('pay-card');
-        btn.classList.add('bg-white', 'text-slate-800', 'shadow-sm', 'active');
+        document.querySelectorAll('.pay-btn').forEach(b => b.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-800', 'active'));
+        document.getElementById(type === 'Nakit' ? 'pay-cash' : 'pay-card').classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-800', 'active');
     }
     function clearCart() { cart = {}; renderCart(); }
     function closeModal() { document.getElementById('modal').style.display = 'none'; }
-    function openTab(tabId) {
+    function openTab(id) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('tab-active'));
-        document.getElementById(tabId).classList.add('tab-active');
-        if(tabId === 'firma-ayarlar') {
-            document.getElementById('firma-ismi').value = firma.ismi;
-            document.getElementById('firma-telefon').value = firma.telefon;
-            document.getElementById('firma-email').value = firma.email || '';
-            document.getElementById('firma-adres').value = firma.adres;
-        }
-    }
-    function changeLanguage(lang) {
-        document.querySelectorAll('[data-lang]').forEach(el => {
-            const key = el.getAttribute('data-lang');
-            el.innerText = i18n[lang][key];
+        document.getElementById(id).classList.add('tab-active');
+        document.querySelectorAll('.tab-btn').forEach(b => {
+            b.classList.remove('text-orange-600', 'bg-orange-50', 'dark:bg-orange-900/20');
+            b.classList.add('text-slate-500');
         });
+        event.currentTarget.classList.add('text-orange-600', 'bg-orange-50', 'dark:bg-orange-900/20');
+        event.currentTarget.classList.remove('text-slate-500');
     }
 </script>
 </body>
